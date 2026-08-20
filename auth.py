@@ -104,6 +104,9 @@ def addWorkout(username):
 
 
 def addSet(workout_id, exercise_id, reps, weight):
+    if reps <= 0 or weight < 0:
+        return {"error": "Reps must be positive and weight can't be negative"}
+    
     conn = get_connection()
     cur = conn.cursor()
 
@@ -279,7 +282,7 @@ def get_sets(workout_id):
     cur = conn.cursor()
 
     get_sets_query = """
-        SELECT exercises.name, exercise_id, reps, weight
+        SELECT sets.id, exercises.name, reps, weight
         FROM sets
         INNER JOIN exercises ON sets.exercise_id = exercises.id
         WHERE workout_id = %s
@@ -329,4 +332,40 @@ def get_total_vol_leaderboard():
 
     return result
 
-print(get_total_vol_leaderboard())
+
+def deleteWorkout(workout_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    delete_query = "DELETE FROM workouts WHERE id = %s"
+
+    cur.execute(delete_query, (workout_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def deleteSet(set_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    delete_query = "DELETE FROM sets WHERE id = %s"
+
+    cur.execute(delete_query, (set_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def updateSet(reps, weight, set_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    update_query = "UPDATE sets SET reps = %s, weight = %s WHERE id = %s"
+
+    cur.execute(update_query, (reps, weight, set_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+

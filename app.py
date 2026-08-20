@@ -19,6 +19,10 @@ class SetData(BaseModel):
     reps: int
     weight: float
 
+class UpdateSetData(BaseModel):
+    reps: int
+    weight: float
+
 app = FastAPI()
 
 app.add_middleware(
@@ -63,7 +67,7 @@ def workouts_route(username: str = Depends(get_current_user)):
 def sets(workout_id: int):
     rows = get_sets(workout_id)
     return [
-        {"exercise": row[0], "reps": row[2], "weight": float(row[3])}
+        {"id": row[0], "exercise": row[1], "reps": row[2], "weight": float(row[3])}
         for row in rows
     ]
 
@@ -109,3 +113,19 @@ def leaderboard_route():
         {"username": row[0], "volume": float(row[1]), "vol_rank": row[2]}
         for row in rows
     ]
+
+@app.delete("/workouts/{workout_id}")
+def delete_workout_route(workout_id: int, username: str = Depends(get_current_user)):
+    deleteWorkout(workout_id)
+    return {"message": "workout deleted"}
+
+
+@app.delete("/sets/{set_id}")
+def delete_set_route(set_id: int, username: str = Depends(get_current_user)):
+    deleteSet(set_id)
+    return {"message": "set deleted"}
+
+@app.put("/sets/{set_id}")
+def update_set_route(set_id: int, data: UpdateSetData, username: str = Depends(get_current_user)):
+    updateSet(data.reps, data.weight, set_id)
+    return {"message": "set updated"}
