@@ -23,7 +23,7 @@ def verify_token(token):
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_connection():
-    return psycopg2.connect(dbname="workout_app", user="keegantu", host="localhost", port="5432")
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 def hash_password(password):
     return pwd_context.hash(password)
