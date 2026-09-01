@@ -2,8 +2,10 @@ import psycopg2
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
-
-SECRET_KEY = "your-secret-key-change-this"
+from dotenv import load_dotenv
+load_dotenv()
+import os
+SECRET_KEY = os.environ["SECRET_KEY"]
 ALGORITHM = "HS256"
 
 def create_token(username):
@@ -14,9 +16,9 @@ def create_token(username):
 def verify_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["sub"]      # the username you stored in "sub"
+        return payload["sub"]
     except JWTError:
-        return None                # invalid or expired token
+        return None                
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -277,18 +279,27 @@ def get_workouts(username):
 
     return result
 
-def get_sets(workout_id):
+def get_sets(workout_id, username):
     conn = get_connection()
     cur = conn.cursor()
+
+    user_id_query = """
+        SELECT id FROM users WHERE username = %s
+        """
+    cur.execute(user_id_query, (username,))
+    user_id = cur.fetchone()[0]
 
     get_sets_query = """
         SELECT sets.id, exercises.name, reps, weight
         FROM sets
         INNER JOIN exercises ON sets.exercise_id = exercises.id
         WHERE workout_id = %s
+        AND workout_id IN (
+            SELECT id FROM workouts WHERE user_id = %s
+        )
         """
 
-    cur.execute(get_sets_query, (workout_id,))
+    cur.execute(get_sets_query, (workout_id, user_id))
     result = cur.fetchall()
     cur.close()
     conn.close()
@@ -333,37 +344,70 @@ def get_total_vol_leaderboard():
     return result
 
 
-def deleteWorkout(workout_id):
+def deleteWorkout(workout_id, username):
     conn = get_connection()
     cur = conn.cursor()
 
-    delete_query = "DELETE FROM workouts WHERE id = %s"
-
-    cur.execute(delete_query, (workout_id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def deleteSet(set_id):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    delete_query = "DELETE FROM sets WHERE id = %s"
-
-    cur.execute(delete_query, (set_id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def updateSet(reps, weight, set_id):
-    conn = get_connection()
-    cur = conn.cursor()
+    user_id_query = """
+        SELECT id FROM users WHERE username = %s
+        """
     
-    update_query = "UPDATE sets SET reps = %s, weight = %s WHERE id = %s"
+    cur.execute(user_id_query, (username,))
+    user_id = cur.fetchone()[0]
 
-    cur.execute(update_query, (reps, weight, set_id))
+    delete_query = "DELETE FROM workouts WHERE id = %s AND user_id = %s"
+
+    cur.execute(delete_query, (workout_id, user_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return cur.rowcount
+
+def deleteSet(set_id, username):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    user_id_query = """
+        SELECT id FROM users WHERE username = %s
+        """
+    cur.execute(user_id_query, (username,))
+    user_id = cur.fetchone()[0]
+
+    delete_query = """
+        DELETE FROM sets WHERE id = %s
+        AND workout_id IN(
+            SELECT id FROM workouts WHERE user_id = %s
+        )
+        """
+
+    cur.execute(delete_query, (set_id, user_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def updateSet(reps, weight, set_id, username):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    user_id_query = """
+        SELECT id FROM users WHERE username = %s
+        """
+    cur.execute(user_id_query, (username,))
+    user_id = cur.fetchone()[0]
+
+    
+    
+    update_query = """
+        UPDATE sets SET reps = %s, weight = %s WHERE id = %s
+        AND workout_id IN(
+            SELECT ID FROM workouts WHERE user_id = %s
+        )
+        """
+
+    cur.execute(update_query, (reps, weight, set_id, user_id))
 
     conn.commit()
     cur.close()

@@ -53,7 +53,7 @@ def login_user(data: LoginData):
         token = create_token(data.username)
         return {"token": token}
     else:
-        return {"error": "Invalid credentials"}
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.get("/my-workouts")
 def workouts_route(username: str = Depends(get_current_user)):
@@ -64,8 +64,8 @@ def workouts_route(username: str = Depends(get_current_user)):
     ]
 
 @app.get("/workouts/{workout_id}/sets")
-def sets(workout_id: int):
-    rows = get_sets(workout_id)
+def sets(workout_id: int, username: str = Depends(get_current_user)):
+    rows = get_sets(workout_id, username)
     return [
         {"id": row[0], "exercise": row[1], "reps": row[2], "weight": float(row[3])}
         for row in rows
@@ -116,16 +116,20 @@ def leaderboard_route():
 
 @app.delete("/workouts/{workout_id}")
 def delete_workout_route(workout_id: int, username: str = Depends(get_current_user)):
-    deleteWorkout(workout_id)
+
+    rows_deleted = deleteWorkout(workout_id, username)
+    if rows_deleted == 0:
+        raise HTTPException(status_code=404, detail="Workout not found")
+
     return {"message": "workout deleted"}
 
 
 @app.delete("/sets/{set_id}")
 def delete_set_route(set_id: int, username: str = Depends(get_current_user)):
-    deleteSet(set_id)
+    deleteSet(set_id, username)
     return {"message": "set deleted"}
 
 @app.put("/sets/{set_id}")
 def update_set_route(set_id: int, data: UpdateSetData, username: str = Depends(get_current_user)):
-    updateSet(data.reps, data.weight, set_id)
+    updateSet(data.reps, data.weight, set_id, username)
     return {"message": "set updated"}
