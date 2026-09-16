@@ -126,10 +126,14 @@ def delete_workout_route(workout_id: int, username: str = Depends(get_current_us
 
 @app.delete("/sets/{set_id}")
 def delete_set_route(set_id: int, username: str = Depends(get_current_user)):
-    deleteSet(set_id, username)
+    sets_deleted = deleteSet(set_id, username)
+    if sets_deleted ==0:
+        raise HTTPException(status_code=404, detail="Sets not found")
     return {"message": "set deleted"}
 
 @app.put("/sets/{set_id}")
 def update_set_route(set_id: int, data: UpdateSetData, username: str = Depends(get_current_user)):
-    updateSet(data.reps, data.weight, set_id, username)
+    sets_updated = updateSet(data.reps, data.weight, set_id, username)
+    if sets_updated == 0:
+        raise HTTPException(status_code=404, detail="Sets not found")
     return {"message": "set updated"}

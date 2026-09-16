@@ -63,10 +63,12 @@ def log_in(username, password):
     cur.execute(password_query, (username,))
 
     result = cur.fetchone()
-    hashed_user_password = result[0]
+    if not result == None:
+        hashed_user_password = result[0]
+    else:
+        return False
                                   
 
-    conn.commit()
     cur.close()
     conn.close()
 
@@ -360,10 +362,10 @@ def deleteWorkout(workout_id, username):
     cur.execute(delete_query, (workout_id, user_id))
 
     conn.commit()
+    rows = cur.rowcount
     cur.close()
     conn.close()
-
-    return cur.rowcount
+    return rows
 
 def deleteSet(set_id, username):
     conn = get_connection()
@@ -383,10 +385,13 @@ def deleteSet(set_id, username):
         """
 
     cur.execute(delete_query, (set_id, user_id))
-
+    
+    
     conn.commit()
+    rows = cur.rowcount
     cur.close()
     conn.close()
+    return rows
 
 def updateSet(reps, weight, set_id, username):
     conn = get_connection()
@@ -408,8 +413,11 @@ def updateSet(reps, weight, set_id, username):
         """
 
     cur.execute(update_query, (reps, weight, set_id, user_id))
+    
 
     conn.commit()
+    rows = cur.rowcount
     cur.close()
     conn.close()
+    return rows
 
